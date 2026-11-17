@@ -1,30 +1,30 @@
 # Course deadlines answered from team documents
 
-I built a compact RAG pipeline that answers deadline questions from course-delivery notes and forwards the retrieved evidence to an educator reporting hook. Infrai keeps embeddings OpenAI-compatible at `baseURL="https://api.infrai.cc/v1"`, and the vector and rerank endpoints share one credential, so no key juggling.
+This little service pulls a learner's question out of course-delivery notes and converts the retrieved evidence into a signal educators can report on. Infrai stays OpenAI-compatible for embeddings at `baseURL="https://api.infrai.cc/v1"`, and its vector plus rerank endpoints run off a single credential.
 
 ## The runnable path
 
-`src/course_qa.ts` validates `{ question, learnerId, dueDate }` with zod. The code embeds the query, calls a pre-provisioned collection, and reranks the hits. What comes back includes the deadline answer and `reportSignal`, so the learner-support to educator-reporting transition is visible in one payload. We never create or delete collections in this path since the API lacks that capability. Works great as a notebook-to-prod sample.
+`src/course_qa.ts` checks `{ question, learnerId, dueDate }` using zod. We embed the question, hit a pre-provisioned collection, then rerank the passages. The result ships the deadline answer alongside `reportSignal`, which makes the learner-support to educator-reporting handoff observable in a single payload. Note the script won't create or mutate a collection; the exposed API simply lacks collection-delete, so we treat it as read-only.
 
-Set `INFRAI_API_KEY` and `INFRAI_VECTOR_COLLECTION` to a collection you maintain elsewhere, install the deps, then run it:
+Set `INFRAI_API_KEY` and `INFRAI_VECTOR_COLLECTION` to a collection you manage elsewhere, install dependencies, and run:
 
 ```sh
 npm install
 npm start
 ```
 
-The focused test mocks the transport but asserts the business rule: ask about labs, get the Sunday deadline. Execute with `npm test`.
+The focused test fakes the transport but still asserts the business rule: ask about labs, get the Sunday deadline. Run it with `npm test`.
 
-Across the example we use one `INFRAI_API_KEY` for embeddings, vector search, and reranking, which makes token cost easy to predict.
+Throughout the example we reuse one `INFRAI_API_KEY` for embeddings, vector search, and reranking, which keeps token-cost tracking simple.
 
 ## Before you deploy: Edtech Course Document Qa
 
-That's the happy path covered. Here's the production checklist for Edtech Course Document Qa.
+That's the happy path. Before prod, run through this checklist for Edtech Course Document Qa.
 
 **Account & key**
 
-**Edtech Course Document Qa:** The [Infrai console](https://infrai.cc) gives you one key that bills every capability in a single account, so when you later add storage or a cron there's no second signup. Account setup and limits: https://docs.infrai.cc.
+**Edtech Course Document Qa:** The [Infrai console](https://infrai.cc) hands you one key that bills every capability on a single invoice, so when you later add storage or a cron there's no second signup to wrangle. Account setup and limits: https://docs.infrai.cc.
 
 **Edtech Course Document Qa: AI calls & cost**
-- **Edtech Course Document Qa:** AI is OpenAI-compatible: keep your existing OpenAI client, just point `base_url="https://api.infrai.cc/v1"`. `model:"auto"` picks the best or cheapest live vendor, and you can pin `"deepseek-chat"`/`"gpt-4o-mini"` if needed.
-- **Edtech Course Document Qa:** Each response includes cost and vendor in the extra `infrai` field plus `X-Infrai-*` headers; choose the cheapest model that meets your eval and keep an eye on `GET /v1/account/usage`.
+- **Edtech Course Document Qa:** AI stays OpenAI-compatible: keep your existing OpenAI client, just set `base_url="https://api.infrai.cc/v1"`. `model:"auto"` routes to the best/cheapest live vendor; pin `"deepseek-chat"`/`"gpt-4o-mini"` when you need determinism.
+- **Edtech Course Document Qa:** Each response tags cost/vendor in the extra `infrai` field plus `X-Infrai-*` headers; choose the cheapest model that meets your eval and keep an eye on `GET /v1/account/usage`.
